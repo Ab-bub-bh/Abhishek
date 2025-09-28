@@ -310,28 +310,23 @@ app.post('/register', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+	    console.log(`Server running at http://localhost:${PORT}`);
 });
 */
 
 
-const express = require('express');
+onst express = require('express');
 const fs = require('fs');
 const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Enable CORS for all origins (so public frontend can access)
 app.use(cors());
-
-// Parse JSON & URL-encoded data
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-
-// Serve static files (if needed)
 app.use(express.static(path.join(__dirname, 'public')));
 
 const usersPath = path.join(__dirname, 'users.json');
@@ -343,34 +338,32 @@ app.post('/register', (req, res) => {
     if (!number || !password) {
         return res.status(400).send('Error: Both number and password are required!');
     }
-
-    const numberRegex = /^\d{10}$/;
-    if (!numberRegex.test(number)) {
+    if (!/^\d{10}$/.test(number)) {
         return res.status(400).send('Error: Number must be exactly 10 digits.');
     }
-
     if (password.length < 8) {
         return res.status(400).send('Error: Password must be at least 8 characters.');
     }
 
+    // Read existing users
     let users = [];
     if (fs.existsSync(usersPath)) {
         users = JSON.parse(fs.readFileSync(usersPath, 'utf-8'));
     }
 
-    const duplicate = users.find(u => u.number === number);
-    if (duplicate) {
+    // Duplicate check
+    if (users.find(u => u.number === number)) {
         return res.status(400).send('Error: This number is already registered!');
     }
 
+    // Save new user
     users.push({ number, password });
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
 
     res.send('User saved successfully!');
 });
 
-// Start server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
-    console.log(`Use ngrok or any tunneling service to expose to public URL`);
 });
+
