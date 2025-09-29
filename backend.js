@@ -314,7 +314,6 @@ app.listen(PORT, () => {
 });
 */
 
-
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -324,20 +323,24 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Enable CORS & body-parser
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// Path for users.json
 const usersPath = path.join(__dirname, 'users.json');
 
-// POST /register route
+// Registration route (POST /register)
 app.post('/register', (req, res) => {
     const { number, password } = req.body;
 
+    // Validation
     if (!number || !password) {
         return res.status(400).send('Error: Both number and password are required!');
     }
-    if (!/^\d{10}$/.test(number)) {
+    const numberRegex = /^\d{10}$/;
+    if (!numberRegex.test(number)) {
         return res.status(400).send('Error: Number must be exactly 10 digits.');
     }
     if (password.length < 8) {
@@ -351,17 +354,27 @@ app.post('/register', (req, res) => {
     }
 
     // Duplicate check
-    if (users.find(u => u.number === number)) {
+    const duplicate = users.find(u => u.number === number);
+    if (duplicate) {
         return res.status(400).send('Error: This number is already registered!');
     }
 
     // Save new user
     users.push({ number, password });
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-
     res.send('User saved successfully!');
 });
 
+// Owner/admin viewing route (GET /users)
+app.get('/users', (req, res) => {
+    let users = [];
+    if (fs.existsSync(usersPath)) {
+        users = JSON.parse(fs.readFileSync(usersPath, 'utf-8'));
+    }
+    res.json(users);
+});
+
+// Start server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
